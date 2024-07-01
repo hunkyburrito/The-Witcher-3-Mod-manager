@@ -2,17 +2,24 @@
 # pylint: disable=invalid-name,missing-docstring
 
 import configparser
-import sys
+import glob
 import os
 import os.path as path
+import sys
 from copy import deepcopy
 from typing import Union
 
 from PySide2.QtWidgets import QMainWindow, QMessageBox, QWidget
 
 from src.globals.constants import translate
-from src.util.util import detectEncoding, getConfigFolder, getConfigFolderName, getDocumentsFolder, normalizePath
 from src.gui.alerts import MessageAlertReadingConfigINI
+from src.util.util import (
+    detectEncoding,
+    getConfigFolder,
+    getConfigFolderName,
+    getDocumentsFolder,
+    normalizePath,
+)
 
 
 class Configuration:
@@ -81,6 +88,9 @@ class Configuration:
             else:
                 print(
                     f'game path override {gamePath} is invalid, starting with existing configuration')
+
+        self._DLC = None
+        self._MODS = None
 
         if not self.get('PATHS', 'scriptmerger'):
             self.set('PATHS', 'scriptmerger', '', False)
@@ -196,8 +206,8 @@ class Configuration:
         if not gameexe:
             raise ValueError('Invalid game exe path \'' + value + '\'')
         self.set('PATHS', 'gameexe', gameexe)
-        if not path.exists(self.game + '/Mods'):
-            os.mkdir(self.game + '/Mods')
+        self._MODS = None
+        self._DLC = None
 
     @property
     def game(self):
@@ -246,11 +256,21 @@ class Configuration:
 
     @property
     def mods(self):
-        return self.game and self.game + '/Mods'
+        if self._MODS is not None:
+            return self._MODS
+        if not self.game:
+            return None
+        self._MODS = self.verifyInternalPath(self.game + '/Mods', create=True)
+        return self._MODS
 
     @property
     def dlc(self):
-        return self.game and self.game + '/DLC'
+        if self._DLC is not None:
+            return self._DLC
+        if not self.game:
+            return None
+        self._DLC = self.verifyInternalPath(self.game + '/DLC', create=True)
+        return self._DLC
 
     @property
     def menu(self):
@@ -318,3 +338,31 @@ class Configuration:
         return normalizePath(gameExePath) if path.exists(gameDirectory) \
             and path.exists(gameDirectory + '/content') \
             and path.isfile(gameDirectory + '/bin/x64/witcher3.exe') else ''
+
+    @staticmethod
+    def verifyInternalPath(internalPath: str | None, create: bool = False) -> str | None:
+        if not internalPath:
+            return None
+        try:
+            if path.isdir(internalPath):
+                return path.abspath(internalPath)
+            parent = path.abspath(path.join(internalPath, path.pardir))
+            if not path.isdir(parent):
+                if create:
+                    os.makedirs(internalPath, exist_ok=True)
+                    return path.abspath(internalPath)
+                else:
+                    return None
+            potentials = [path.join(parent, d) for d in glob.glob(
+                '*', root_dir=parent) if path.isdir(path.join(parent, d)) and d.lower() == path.basename(internalPath).lower()]
+            existing = next(iter(potentials), None)
+            if not existing:
+                if create:
+                    os.makedirs(internalPath, exist_ok=True)
+                    return path.abspath(internalPath)
+                else:
+                    return None
+            return path.abspath(existing)
+        except OSError as e:
+            print(f'Error checking path {internalPath}: {e}')
+            return None
