@@ -1,18 +1,23 @@
 '''XML Fetcher'''
 # pylint: disable=invalid-name,superfluous-parens,missing-docstring
 
-from sys import platform
 import re
 import subprocess
-from os import path, walk, listdir, mkdir
+from os import listdir, mkdir, path, walk
 from os.path import isfile, join
-from typing import Tuple, List
+from sys import platform
+from typing import List, Tuple
 
-from src.globals import data
 from src.domain.key import Key
-from src.domain.usersetting import Usersetting
 from src.domain.mod import Mod
-from src.util.util import detectEncoding, getProgramRootFolder, normalizePath, removeDirectory
+from src.domain.usersetting import Usersetting
+from src.globals import data
+from src.util.util import (
+    detectEncoding,
+    getProgramRootFolder,
+    normalizePath,
+    removeDirectory,
+)
 
 XMLPATTERN = re.compile(r"<Var.+\/>", re.UNICODE)
 INPUTPATTERN = re.compile(
@@ -265,6 +270,11 @@ def extractArchive(modPath: str) -> str:
                     'utf-8') if result.stderr else 'Could not extract archive'
             )
     else:
-        from pyunpack import Archive
-        Archive(modPath).extractall(extractedDir)
+        try:
+            import shutil
+            shutil.unpack_archive(modPath, extractedDir)
+        except ValueError:
+            import patoolib  # type: ignore
+            patoolib.extract_archive(
+                modPath, outdir=extractedDir, interactive=False)
     return extractedDir

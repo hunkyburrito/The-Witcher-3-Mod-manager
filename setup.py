@@ -1,7 +1,8 @@
 '''Witcher 3 Mod Manager cx_Freeze setup script'''
 # pylint: disable=wildcard-import,unused-wildcard-import
 
-from cx_Freeze import setup, Executable
+from cx_Freeze import Executable, setup
+
 from src.globals.constants import *
 
 FILES = ["res/", "translations/", "tools/",
@@ -34,7 +35,7 @@ setup(
     options={
         "build_exe": {
             "include_files": FILES,
-            "excludes": ["distutils", "patool", "pyunpack"],
+            "excludes": ["distutils", "patool"],
             "optimize": 2,
             "zip_include_packages": ["src"],
             "include_msvcr": True
