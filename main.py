@@ -2,22 +2,18 @@
 # pylint: disable=invalid-name,missing-docstring,bare-except,broad-except,wildcard-import,unused-wildcard-import
 
 import sys
-import os
-import re
-from os import environ
 from argparse import ArgumentParser
+from os import environ
 
 from PySide2.QtWidgets import QApplication, QMessageBox
 
-from src.gui.main_window import CustomMainWindow
-from src.gui.main_widget import CustomMainWidget
-from src.gui.alerts import *
-from src.util.util import *
 from src.configuration.config import Configuration
 from src.core.model import Model
 from src.globals import data
-from src.globals.constants import translate
-
+from src.gui.alerts import *
+from src.gui.main_widget import CustomMainWidget
+from src.gui.main_window import CustomMainWindow
+from src.util.util import *
 
 if __name__ == "__main__":
     # correct screen scaling
@@ -90,7 +86,7 @@ if __name__ == "__main__":
 
     ret = data.app.exec_()
     data.config.saveWindowSettings(mainWidget, mainWindow)
-    data.config.write()
+    data.config.write_immediately()
     modModel.write()
 
     sys.exit(ret)

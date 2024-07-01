@@ -1,30 +1,25 @@
 '''Global Helpers'''
-# pylint: disable=invalid-name,superfluous-parens,missing-docstring,wildcard-import,unused-wildcard-import
+# pylint: disable=invalid-name,superfluous-parens,missing-docstring,wildcard-import,unused-wildcard-import,import-outside-toplevel
 
-from sys import platform
 import os
-import sys
 import re
+import subprocess
+import sys
 import traceback
 import webbrowser
-import subprocess
-from shutil import copytree, rmtree
-from platform import python_version
 from configparser import ConfigParser
+from platform import python_version
+from shutil import copytree, rmtree
+from sys import platform
 from threading import Timer
-import charset_normalizer
-from typing import Callable, Any
+from typing import Any, Callable
 
-from PySide2 import QtGui, QtCore, __version__
-from PySide2.QtWidgets import QFileDialog, QMessageBox, QWidget
-
-from src.globals import data
-from src.globals.constants import *
-from src.gui.file_dialog import FileDialog
-from src.gui.alerts import MessageCouldntOpenFile, MessageNotConfigured, MessageNotConfiguredScriptMerger, MessageUnsupportedOS
+from PySide2 import QtGui, __version__
+from PySide2.QtWidgets import QFileDialog, QMessageBox
 
 
 def formatUserError(error: Exception) -> str:
+    from src.globals import data
     print(traceback.format_exc(), error, file=sys.stderr)
     if data.debug:
         return traceback.format_exc() + str(error)
@@ -33,9 +28,11 @@ def formatUserError(error: Exception) -> str:
 
 
 def getDocumentsFolder() -> str:
+    from src.globals.constants import translate
+    from src.gui.alerts import MessageUnsupportedOS
     path = ""
     if platform == "win32" or platform == "cygwin":
-        from ctypes import create_unicode_buffer, wintypes, windll
+        from ctypes import create_unicode_buffer, windll, wintypes
         buf = create_unicode_buffer(wintypes.MAX_PATH)
         windll.shell32.SHGetFolderPathW(None, 5, None, 0, buf)
         path = normalizePath(buf.value)
@@ -56,6 +53,7 @@ def getDocumentsFolder() -> str:
 
 
 def getConfigFolder() -> str:
+    from src.gui.alerts import MessageUnsupportedOS
     if platform == "win32" or platform == "cygwin":
         return getDocumentsFolder()
     if platform == "linux" or platform == "darwin":
@@ -71,6 +69,7 @@ def getConfigFolderName() -> str:
 
 
 def getVersionString() -> str:
+    from src.globals.constants import TITLE, VERSION
     return TITLE + " " + VERSION
 
 
@@ -87,6 +86,9 @@ def normalizePath(path: str) -> str:
 
 
 def reconfigureGamePath() -> bool:
+    from src.globals import data
+    from src.globals.constants import translate
+    from src.gui.alerts import MessageNotConfigured
     MessageNotConfigured()
     gamePath = str(QFileDialog.getOpenFileName(
         None,
@@ -107,6 +109,9 @@ def reconfigureGamePath() -> bool:
 
 
 def reconfigureScriptMergerPath():
+    from src.globals import data
+    from src.globals.constants import translate
+    from src.gui.alerts import MessageNotConfiguredScriptMerger
     MessageNotConfiguredScriptMerger()
     mergerPath = str(QFileDialog.getOpenFileName(
         None,
@@ -118,6 +123,7 @@ def reconfigureScriptMergerPath():
 
 
 def showAboutWindow():
+    from src.globals.constants import AUTHORS, TITLE, VERSION, translate
     QMessageBox.about(
         None,
         translate("MainWindow", "About"),
@@ -136,6 +142,7 @@ def openUrl(url: str):
 
 
 def openFile(path: str):
+    from src.gui.alerts import MessageCouldntOpenFile
     try:
         if isExecutable(path):
             directory, _ = os.path.split(path)
@@ -144,7 +151,7 @@ def openFile(path: str):
             if platform == "linux" or platform == "darwin":
                 try:
                     subprocess.call(["xdg-open", path])
-                except OSError as e:
+                except OSError:
                     editor = os.getenv('EDITOR')
                     if editor:
                         subprocess.Popen([editor, path])
@@ -153,7 +160,7 @@ def openFile(path: str):
             else:
                 try:
                     os.startfile(path)
-                except Exception as e:
+                except Exception:
                     webbrowser.open(path, new=1)
         elif os.path.isdir(path):
             openFolder(path)
@@ -169,7 +176,7 @@ def openFolder(path: str):
     if platform == "linux" or platform == "darwin":
         try:
             subprocess.Popen(["xdg-open", path])
-        except OSError as e:
+        except OSError:
             webbrowser.open(path, new=1)
     else:
         os.startfile(path, "explore")
@@ -198,12 +205,17 @@ def removeDirectory(directory: str) -> None:
 
 def restartProgram():
     '''Restarts the program'''
-    data.config.write()
+    from src.globals import data
+    data.config.write_immediately()
     python = sys.executable
     os.execl(python, python, *sys.argv)
 
 
-def getFile(directory="", extensions="", title=translate("MainWindow", "Select Files or Folders")):
+def getFile(directory="", extensions="", title=None):
+    from src.globals.constants import translate
+    from src.gui.file_dialog import FileDialog
+    if title is None:
+        title = translate("MainWindow", "Select Files or Folders")
     '''Opens custom dialog for selecting multiple folders or files'''
     return FileDialog(None, title, str(directory), str(extensions)).selectedFiles
 
@@ -241,6 +253,7 @@ def isExecutable(name: str) -> bool:
 
 
 def translateToChosenLanguage() -> bool:
+    from src.globals import data
     language = data.config.language
     if (language and os.path.exists("translations/" + language)):
         print("loading translation", language)
@@ -255,6 +268,7 @@ def translateToChosenLanguage() -> bool:
 
 
 def detectEncoding(path: str) -> str:
+    import charset_normalizer
     if os.path.exists(path):
         with open(path, 'rb') as file:
             text = file.read()
@@ -269,6 +283,7 @@ def detectEncoding(path: str) -> str:
 
 def fixUserSettingsDuplicateBrackets():
     '''Fix invalid section names in user.settings'''
+    from src.globals import data
     try:
         config = ConfigParser(strict=False)
         config.optionxform = str
@@ -310,10 +325,10 @@ def throttle(ms: int):
     return decorate
 
 
-def debounce(ms: int):
+def debounce(ms: int) -> Callable[[Callable[..., None]], Callable[..., Timer]]:
     """Debounce a functions execution by {ms} milliseconds"""
-    def decorator(fun):
-        def debounced(*args, **kwargs):
+    def decorator(fun: Callable[..., None]) -> Callable[..., Timer]:
+        def debounced(*args: Any, **kwargs: Any) -> Timer:
             def deferred():
                 fun(*args, **kwargs)
             try:
@@ -322,5 +337,6 @@ def debounce(ms: int):
                 pass
             debounced.timer = Timer(ms / 1000.0, deferred)
             debounced.timer.start()
+            return debounced.timer
         return debounced
     return decorator

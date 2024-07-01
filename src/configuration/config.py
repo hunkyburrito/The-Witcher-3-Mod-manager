@@ -13,13 +13,7 @@ from PySide2.QtWidgets import QMainWindow, QMessageBox, QWidget
 
 from src.globals.constants import translate
 from src.gui.alerts import MessageAlertReadingConfigINI
-from src.util.util import (
-    detectEncoding,
-    getConfigFolder,
-    getConfigFolderName,
-    getDocumentsFolder,
-    normalizePath,
-)
+from src.util import util
 
 
 class Configuration:
@@ -42,7 +36,7 @@ class Configuration:
             if path.isfile(path.realpath(path.curdir) + '/config.ini'):
                 self.__configPath = path.realpath(path.curdir)
             else:
-                self.__configPath = getConfigFolder() + '/' + getConfigFolderName()
+                self.__configPath = util.getConfigFolder() + '/' + util.getConfigFolderName()
 
         self.config = configparser.ConfigParser(
             allow_no_value=True, delimiters='=', strict=False)
@@ -63,7 +57,7 @@ class Configuration:
         elif self.get('PATHS', 'documents') and os.path.exists(self.get('PATHS', 'documents')):
             self.documents = self.get('PATHS', 'documents')
         else:
-            self.documents = getDocumentsFolder()
+            self.documents = util.getDocumentsFolder()
 
         if not self.documents or not os.path.exists(self.documents):
             QMessageBox.critical(
@@ -104,18 +98,23 @@ class Configuration:
     def readPriority(self):
         self.priority.clear()
         file = self.__userSettingsPath + '/mods.settings'
-        self.priority.read(file, encoding=detectEncoding(file))
+        self.priority.read(file, encoding=util.detectEncoding(file))
 
     def readConfig(self):
         print(f"reading config.ini from {self.__configPath + '/config.ini'}")
         file = self.__configPath + '/config.ini'
         if os.path.isfile(file):
             try:
-                self.config.read(file, encoding=detectEncoding(file))
+                self.config.read(file, encoding=util.detectEncoding(file))
             except Exception as e:
                 MessageAlertReadingConfigINI(file, e)
 
+    @util.debounce(50)
     def write(self, space_around_delimiters: bool = False):
+        self.write_immediately(space_around_delimiters)
+
+    def write_immediately(self, space_around_delimiters: bool = False):
+        self.write().cancel()
         if self.config != self.configLastWritten:
             with open(self.__configPath + '/config.ini', 'w', encoding='utf-8') as file:
                 print(
@@ -335,7 +334,7 @@ class Configuration:
         if ext == '.exe':
             for _ in range(3):
                 gameDirectory, _ = path.split(gameDirectory)
-        return normalizePath(gameExePath) if path.exists(gameDirectory) \
+        return util.normalizePath(gameExePath) if path.exists(gameDirectory) \
             and path.exists(gameDirectory + '/content') \
             and path.isfile(gameDirectory + '/bin/x64/witcher3.exe') else ''
 
