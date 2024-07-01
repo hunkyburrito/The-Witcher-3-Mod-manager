@@ -20,12 +20,12 @@ On the first run, if no configuration can be found, configuration files will be 
 
 ### Python (Windows and Linux)
 
-Download the source and install the requirements with `pipenv install --python 3`. Python 3.7+ and Pipenv have to be installed. Afterwards run with `pipenv run python main.py`.
+Download the source and install the requirements with `pipenv install --python 3.10`. Python 3.10 and Pipenv have to be installed. Afterwards run with `pipenv run python main.py`.
 
 On Linux, the configuration files will be created in `~/.config/TheWitcher3ModManager`, and `wine` has to be available to run Script Merger.
 
 ### Build Developed Versions (Windows)
 
-Download the source and install the requirements with `pipenv install --python 3 --dev`. Python 3.7+ and Pipenv have to be installed. Afterwards run with `pipenv run python setup.py build_exe`.
+Download the source and install the requirements with `pipenv install --python 3.10 --dev`. Python 3.10 and Pipenv have to be installed. Afterwards run with `pipenv run python setup.py build_exe`.
 
 The files will be created in `build/exe.[platform identifier].[python version]`.
