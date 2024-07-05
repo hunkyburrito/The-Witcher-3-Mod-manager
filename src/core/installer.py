@@ -128,7 +128,10 @@ class Installer:
                 self.output(translate("MainWindow", "Note: Additions to ") +
                             "input.xml" + translate("MainWindow", " could not be automatically installed."))
             try:
-                mod.installInputKeys()
+                added, skipped = mod.installInputKeys()
+                self.output(
+                    translate("MainWindow", "Added") + f" {added} " + translate("MainWindow", "input keys") +
+                    (f" ({translate('MainWindow', 'skipped')} {skipped})" if skipped > 0 else ""))
             except Exception as err:
                 incomplete = True
                 self.output(formatUserError(err))
@@ -233,7 +236,10 @@ class Installer:
                 self.output(translate("MainWindow", "Note: Additions to ") +
                             translate("MainWindow", "menu xml files") + translate("MainWindow", " could not be automatically installed."))
             try:
-                mod.installInputKeys()
+                added, skipped = mod.installInputKeys()
+                self.output(
+                    translate("MainWindow", "Added") + f" {added} " + translate("MainWindow", "input keys") +
+                    (f" ({translate('MainWindow', 'skipped')} {skipped})" if skipped > 0 else ""))
             except Exception as err:
                 incomplete = True
                 self.output(formatUserError(err))

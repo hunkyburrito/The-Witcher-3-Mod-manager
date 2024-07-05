@@ -1027,9 +1027,9 @@ class CustomMainWidget(QWidget):
                     self.setProgress(20)
                     installer = Installer(self.model, output=self.output)
                     for modname in selected:
-                        error, incomplete = installer.reinstallMod(
+                        success, incomplete = installer.reinstallMod(
                             self.model.get(modname))
-                        if error:
+                        if not success:
                             errors += 1
                         if incomplete:
                             incompleteCount += 1

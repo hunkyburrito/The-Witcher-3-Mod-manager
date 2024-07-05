@@ -7,17 +7,23 @@ from PySide2.QtWidgets import QMessageBox
 from src.globals.constants import *
 
 
-def MessageRebindedKeys(key, temp):
-    '''Shows dialog to let user decide what to do if rebinded key is found'''
+def MessageRebindKeys(current, modded, category, justModifiers=False):
+    '''Shows dialog to let user decide what to do if key rebind with same action but different modifiers is found'''
+    if justModifiers:
+        additional = translate("MainWindow", "The new keybind for the same action has different modifiers than the current keybind.") + "\n\n" + \
+            translate("MainWindow", "Replace modifiers?")
+    else:
+        additional = translate("MainWindow", "The new keybind changes the key for an existing action.") + "\n\n" + \
+            translate("MainWindow", "Replace keybind and modifiers?")
     return QMessageBox.question(
         None,
-        translate("MainWindow", "Key Rebinding Found"),
-        translate("MainWindow", "Key rebinding found.") + "\n\n" +
-        translate("MainWindow", "New key: ") + "\n  " + str(key) + "\n" +
-        translate("MainWindow", "Current key: ") + "\n  " + str(temp) + "\n\n" +
-        translate("MainWindow", "Do you wish to keep your current key?"),
-        QMessageBox.Yes | QMessageBox.YesToAll |
-        QMessageBox.No | QMessageBox.NoToAll | QMessageBox.SaveAll,
+        translate("MainWindow", "Key Rebind Found"),
+        translate("MainWindow", "Key rebind found.") + "\n\n" +
+        translate("MainWindow", "Category: ") + "\n  " + category + "\n\n" +
+        translate("MainWindow", "Current keybind: ") + "\n  " + str(current) + "\n" +
+        translate("MainWindow", "New mod keybind: ") + "\n  " + str(modded) + "\n\n" +
+        additional,
+        QMessageBox.Yes | QMessageBox.YesToAll | QMessageBox.No | QMessageBox.NoToAll,
         QMessageBox.Yes)
 
 

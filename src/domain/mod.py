@@ -6,14 +6,14 @@ from configparser import ConfigParser
 from dataclasses import dataclass, field
 from os import path, rename, walk
 from time import gmtime, strftime
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Tuple
 
 from PySide2.QtWidgets import QMessageBox
 
 from src.domain.key import Key
 from src.globals import data
 from src.globals.constants import translate
-from src.gui.alerts import MessageRebindedKeys
+from src.gui.alerts import MessageRebindKeys
 from src.util.util import *
 
 
@@ -240,79 +240,76 @@ class Mod:
             with open(data.config.menu + "/hidden.xml", 'w', encoding="utf-16") as userfile:
                 text = userfile.write(text)
 
-    def installInputKeys(self) -> int:
+    def installInputKeys(self) -> Tuple[int, int]:
+        from src.core.fetcher import fetchInputSettings
+
         print("installing input settings", str(self.inputsettings))
         added = 0
-        if (self.inputsettings):
-            text = ''
-            with open(data.config.settings + "/input.settings", 'r', encoding=detectEncoding(data.config.settings + "/input.settings")) as userfile:
+        skipped = 0
+        existing: List[Key] = []
+        filename = data.config.settings + "/input.settings"
+        if path.exists(filename):
+            with open(filename, 'r', encoding=detectEncoding(filename)) as userfile:
                 text = userfile.read()
-            ask = True
-            keep = True
+                existing = fetchInputSettings(text)
+        conflicts: List[Tuple[Key, List[Key]]] = []
+        if (self.inputsettings):
             for key in iter(self.inputsettings):
-                keycontext = key.context[1:-1]
-                context = re.search(r"\[" + keycontext + r"\]\n(.+\n)+", text)
-                if (not context):
-                    text = '['+keycontext+']\n\n' + text
-                    contexttext = '['+keycontext+']\n'
-                else:
-                    contexttext = str(context.group(0))
-                if (key.duration or key.axis):
-                    foundkeys = re.findall(
-                        r".*Action="+key.action+r",.*", contexttext)
-                else:
-                    foundkeys = re.findall(
-                        r".*Action="+key.action+r"\)", contexttext)
-                if (not foundkeys):
+                if any(x for x in existing if x == key):
+                    continue
+                conflicting = [x for x in existing if x.context == key.context and x.action["Action"] == key.action["Action"] and (
+                    (x.type == key.type and x.key != key.key) or
+                    (x.key == key.key and x.action != key.action)
+                )]
+                if len(conflicting) == 0:
                     added += 1
-                    text = re.sub(
-                        r"\[" + keycontext + r"\]\n",
-                        r"[" + keycontext + r"]\n"+str(key)+"\n",
-                        text)
+                    existing.append(key)
                 else:
-                    shdadd = True
-                    for foundkey in foundkeys:
-                        if (foundkey == str(key)):
-                            shdadd = False
-                            break
-                    if (shdadd):
-                        for foundkey in foundkeys:
-                            temp = Key('', foundkey)
-                            if (temp.type == key.type and temp.axis == key.axis and
-                                    temp.duration == key.duration):
-                                shdadd = False
-                                if (ask):
-                                    msg = MessageRebindedKeys(key, temp)
-                                    if msg == QMessageBox.SaveAll:
-                                        shdadd = True
-                                        break
-                                    elif msg == QMessageBox.Yes:
-                                        keep = True
-                                    elif msg == QMessageBox.No:
-                                        keep = False
-                                    elif msg == QMessageBox.YesToAll:
-                                        ask = False
-                                        keep = True
-                                    elif msg == QMessageBox.NoToAll:
-                                        ask = False
-                                        keep = False
-                                    else:
-                                        keep = True
-                                if (not keep):
-                                    newcontexttext = contexttext.replace(
-                                        foundkey, str(key))
-                                    text = text.replace(
-                                        contexttext, newcontexttext)
-                                    contexttext = newcontexttext
-                        if (shdadd):
-                            added += 1
-                            text = re.sub(
-                                r"\[" + keycontext + r"\]\n",
-                                r"[" + keycontext + r"]\n" + str(key) + r"\n",
-                                text)
-            with open(data.config.settings + "/input.settings", 'w', encoding="utf-8") as userfile:
-                text = userfile.write(text)
-        return added
+                    conflicts.append((key, conflicting))
+        if conflicts:
+            saved = None
+            for (key, conflicting) in conflicts:
+                print("conflicting key", key, conflicting)
+                for e in conflicting:
+                    justModifiers = e.key == key.key and e.action != key.action
+                    if saved is None:
+                        msg = MessageRebindKeys(
+                            e, key, e.context, justModifiers)
+                    else:
+                        msg = saved
+                    if msg == QMessageBox.Yes:
+                        existing.remove(e)
+                        existing.append(key)
+                        added += 1
+                    elif msg == QMessageBox.No:
+                        skipped += 1
+                    elif msg == QMessageBox.YesToAll:
+                        existing.remove(e)
+                        existing.append(key)
+                        added += 1
+                        saved = QMessageBox.Yes
+                    elif msg == QMessageBox.NoToAll:
+                        skipped += 1
+                        saved = QMessageBox.No
+        existing.sort()
+        text = ''
+        category = None
+        for key in existing:
+            if key.context != category:
+                if category is not None:
+                    text += '\n'
+                category = key.context
+                if not category.startswith('['):
+                    text += '['
+                text += category
+                if not category.endswith(']'):
+                    text += ']'
+                text += '\n'
+            text += repr(key) + "\n"
+        with open(filename, 'w', encoding="utf-8") as userfile:
+            userfile.write(text)
+
+        return added, skipped
 
     def installUserSettings(self) -> int:
         added = 0
