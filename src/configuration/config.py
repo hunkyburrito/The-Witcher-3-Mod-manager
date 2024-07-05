@@ -22,6 +22,9 @@ class Configuration:
     __configPath: str = ''
     __userSettingsPath: str = ''
 
+    __writing_config: bool = False
+    __writing_priority: bool = False
+
     config: configparser.ConfigParser = None  # type: ignore
     priority: configparser.ConfigParser = None  # type: ignore
 
@@ -96,18 +99,34 @@ class Configuration:
             self.config.add_section('TOOLBAR')
 
     def readPriority(self):
+        print(
+            f"reading mods.settings from {self.__userSettingsPath + '/mods.settings'}")
         self.priority.clear()
         file = self.__userSettingsPath + '/mods.settings'
-        self.priority.read(file, encoding=util.detectEncoding(file))
+        if self.__writing_priority:
+            return
+        if os.path.isfile(file):
+            try:
+                self.priority.clear()
+                self.priority.read(file, encoding=util.detectEncoding(file))
+            except Exception as e:
+                MessageAlertReadingConfigINI(file, e)
+        else:
+            print("mods.settings not found, creating new file")
 
     def readConfig(self):
         print(f"reading config.ini from {self.__configPath + '/config.ini'}")
         file = self.__configPath + '/config.ini'
+        if self.__writing_config:
+            return
         if os.path.isfile(file):
             try:
+                self.config.clear()
                 self.config.read(file, encoding=util.detectEncoding(file))
             except Exception as e:
                 MessageAlertReadingConfigINI(file, e)
+        else:
+            print("config.ini not found, creating new file")
 
     @util.debounce(50)
     def write(self, space_around_delimiters: bool = False):
@@ -116,25 +135,33 @@ class Configuration:
     def write_immediately(self, space_around_delimiters: bool = False):
         self.write().cancel()
         if self.config != self.configLastWritten:
-            with open(self.__configPath + '/config.ini', 'w', encoding='utf-8') as file:
-                print(
-                    f"writing config.ini to {self.__configPath + '/config.ini'}")
-                self.config.write(file, space_around_delimiters)
+            try:
+                self.__writing_config = True
+                with open(self.__configPath + '/config.ini', 'w', encoding='utf-8') as file:
+                    print(
+                        f"writing config.ini to {self.__configPath + '/config.ini'}")
+                    self.config.write(file, space_around_delimiters)
+            finally:
+                self.__writing_config = False
             self.configLastWritten = deepcopy(self.config)
         if self.priority != self.priorityLastWritten:
-            with open(self.__userSettingsPath + '/mods.settings', 'w', encoding='utf-8') as file:
-                print(
-                    f"writing mods.settings to {self.__configPath + '/mods.settings'}")
-                # proper-case all keys
-                priority = deepcopy(self.priority)
-                priority.optionxform = str  # type: ignore
-                for section in priority.sections():
-                    for option in priority.options(section):
-                        value = priority.get(section, option)
-                        priority.remove_option(section, option)
-                        priority.set(
-                            section, f'{option[:1].upper()}{option[1:].lower()}', value)
-                priority.write(file, space_around_delimiters)
+            # proper-case all keys
+            priority = deepcopy(self.priority)
+            priority.optionxform = str  # type: ignore
+            for section in priority.sections():
+                for option in priority.options(section):
+                    value = priority.get(section, option)
+                    priority.remove_option(section, option)
+                    priority.set(
+                        section, f'{option[:1].upper()}{option[1:].lower()}', value)
+            try:
+                self.__writing_priority = True
+                with open(self.__userSettingsPath + '/mods.settings', 'w', encoding='utf-8') as file:
+                    print(
+                        f"writing mods.settings to {self.__userSettingsPath + '/mods.settings'}")
+                    priority.write(file, space_around_delimiters)
+            finally:
+                self.__writing_priority = False
             self.priorityLastWritten = deepcopy(self.priority)
 
     def get(self, section: str, option: str):
