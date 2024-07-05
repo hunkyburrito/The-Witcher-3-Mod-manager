@@ -43,11 +43,10 @@ def MessageAlertScript():
         translate(
             "MainWindow",
             "After changing the mod list in any way you should run script merger to merge "
-            "the mods and ensure their compatibility and remove previously merged scripts")+
+            "the mods and ensure their compatibility and remove previously merged scripts") +
         translate(
             "MainWindow",
-            "Do you want to run it now?")+"\n"+
-            "\n"+
+            "Do you want to run it now?")+"\n\n" +
         translate(
             "MainWindow",
             "Note: You can disable these alerts in the settings..."),
@@ -61,14 +60,13 @@ def MessageAlertOtherInstance():
         translate("MainWindow", "Already Running"),
         translate(
             "MainWindow",
-            "Another instance of ")+TITLE+
+            "Another instance of ")+TITLE +
         translate(
             "MainWindow",
-            " is already running.")+"\n"+
+            " is already running.")+"\n" +
         translate(
             "MainWindow",
-            "Opening more than one instance can result in an invalid configuration.")+"\n"+
-            "\n"+
+            "Opening more than one instance can result in an invalid configuration.")+"\n\n" +
         translate(
             "MainWindow",
             "Do you want to continue anyway?"),
@@ -141,7 +139,7 @@ def MessageAlertWritingFailed(path: str, error: Exception):
         translate("MainWindow", "Failed to write to a file:<br>") +
         f"<code>{path}</code><br><br>" +
         translate("MainWindow", "Please check if the file is still valid.<br>" +
-        "Otherwise check if a .old copy exists in its location and copy over its contents.<br><br>"))
+                  "Otherwise check if a .old copy exists in its location and copy over its contents.<br><br>"))
     message.setStandardButtons(QMessageBox.Ok)
     message.setTextFormat(Qt.RichText)
     message.setDetailedText(f"{str(error)}")
@@ -158,7 +156,7 @@ def MessageAlertReadingConfigurationFailed(path: str, error: Exception):
         translate("MainWindow", "Failed to read a configuration file:<br>") +
         f"<code>{path}</code><br><br>" +
         translate("MainWindow", "Please check if the file is still valid.<br>"
-        "Otherwise check if a .old copy exists in its location and copy over its contents.<br><br>"))
+                  "Otherwise check if a .old copy exists in its location and copy over its contents.<br><br>"))
     message.setStandardButtons(QMessageBox.Ok)
     message.setTextFormat(Qt.RichText)
     message.setDetailedText(f"{str(error)}")
@@ -189,7 +187,7 @@ def MessageNotConfigured():
         translate("MainWindow", "The Witcher 3 Mod Manager - Configuration"))
     message.setText(
         translate("MainWindow", "Welcome! Please select your <code>witcher3.exe</code> in the next dialog.<br><br>"
-        "This file can be found in the games installation directory under <code>bin/x64/witcher3.exe</code> or <code>bin/x64_dx12/witcher3.exe</code>.<br><br>"))
+                  "This file can be found in the games installation directory under <code>bin/x64/witcher3.exe</code> or <code>bin/x64_dx12/witcher3.exe</code>.<br><br>"))
     message.setStandardButtons(QMessageBox.Ok)
     message.setTextFormat(Qt.RichText)
     return message.exec_()
@@ -203,23 +201,38 @@ def MessageNotConfiguredScriptMerger():
         translate("MainWindow", "The Witcher 3 Mod Manager - Configuration"))
     message.setText(
         translate("MainWindow", "Please select your <code>WitcherScriptMerger.exe</code> in the next dialog.<br><br>" +
-        "Script Merger is not included and has to be downloaded separately.<br>" +
-        "It can be found at <a href=\"https://www.nexusmods.com/witcher3/mods/484\">https://www.nexusmods.com/witcher3/mods/484</a><br><br>"))
+                  "Script Merger is not included and has to be downloaded separately.<br>" +
+                  "It can be found at <a href=\"https://www.nexusmods.com/witcher3/mods/484\">https://www.nexusmods.com/witcher3/mods/484</a><br><br>"))
     message.setStandardButtons(QMessageBox.Ok)
     message.setTextFormat(Qt.RichText)
     return message.exec_()
 
 
 def MessageAlertModFromGamePath(modPath, gamePath):
+    '''Shows alert that adding mods from the game's directory is not supported'''
     message = QMessageBox(None)
     message.setIcon(QMessageBox.Information)
     message.setWindowTitle(
         translate("MainWindow", "Invalid Mod Location"))
     message.setText(
         translate("MainWindow", "Adding mods from within the game's directory is not supported.<br>" +
-        "If you want to add existing mods to the manager you have to uninstall them first.<br><br>") +
+                  "If you want to add existing mods to the manager you have to uninstall them first.<br><br>") +
         translate("MainWindow", "Mod locaion: ") + modPath + "<br>" +
         translate("MainWindow", "Game location: ") + gamePath + "<br><br>")
     message.setStandardButtons(QMessageBox.Ok)
     message.setTextFormat(Qt.RichText)
+    return message.exec_()
+
+
+def MessageAlertCriticalError(error: Exception):
+    '''Shows alert that a critical error occured'''
+    message = QMessageBox(None)
+    message.setIcon(QMessageBox.Critical)
+    message.setWindowTitle(translate("MainWindow", "Unexpected Error"))
+    message.setText(
+        translate("MainWindow", "An unexpected error occured.<br>") +
+        translate("MainWindow", "See the detailed error below.<br><br>"))
+    message.setStandardButtons(QMessageBox.Ok)
+    message.setTextFormat(Qt.RichText)
+    message.setDetailedText(f"{str(error)}")
     return message.exec_()
