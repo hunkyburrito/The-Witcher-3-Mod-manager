@@ -2,19 +2,19 @@
 # pylint: disable=invalid-name,wildcard-import,unused-wildcard-import,superfluous-parens,missing-docstring
 
 import re
-from os import path, rename, walk
-from time import strftime, gmtime
-from dataclasses import dataclass, field
-from typing import Union, List, Optional
 from configparser import ConfigParser
+from dataclasses import dataclass, field
+from os import path, rename, walk
+from time import gmtime, strftime
+from typing import List, Optional, Union
 
 from PySide2.QtWidgets import QMessageBox
 
-from src.util.util import *
 from src.domain.key import Key
 from src.globals import data
 from src.globals.constants import translate
 from src.gui.alerts import MessageRebindedKeys
+from src.util.util import *
 
 
 @dataclass
@@ -158,19 +158,19 @@ class Mod:
                 text = userfile.read()
             for menu in iter(self.menus):
                 menu_line = menu + ";"
-                if(not menu_line in text):
+                if (menu_line not in text):
                     text = text + '\n' + menu_line
             with open(data.config.menu + "/dx11filelist.txt", 'w', encoding="utf-16") as userfile:
-                text = text.replace('\n\n', '\n');
+                text = text.replace('\n\n', '\n')
                 text = userfile.write(text)
             with open(data.config.menu + "/dx12filelist.txt", 'r', encoding=detectEncoding(data.config.menu + "/dx12filelist.txt")) as userfile:
                 text = userfile.read()
             for menu in iter(self.menus):
                 menu_line = menu + ";"
-                if(not menu_line in text):
+                if (menu_line not in text):
                     text = text + '\n' + menu_line
             with open(data.config.menu + "/dx12filelist.txt", 'w', encoding="utf-16") as userfile:
-                text = text.replace('\n\n', '\n');
+                text = text.replace('\n\n', '\n')
                 text = userfile.write(text)
 
     def installXmlKeys(self):
@@ -179,7 +179,7 @@ class Mod:
             with open(data.config.menu + "/input.xml", 'r', encoding=detectEncoding(data.config.menu + "/input.xml")) as userfile:
                 text = userfile.read()
             for xml in iter(self.xmlkeys):
-                if (not xml in text):
+                if (xml not in text):
                     text = text.replace(
                         '<!-- [BASE_CharacterMovement] -->',
                         xml+'\n<!-- [BASE_CharacterMovement] -->')
@@ -190,7 +190,7 @@ class Mod:
             with open(data.config.menu + "/hidden.xml", 'r', encoding=detectEncoding(data.config.menu + "/hidden.xml")) as userfile:
                 text = userfile.read()
             for xml in iter(self.hidden):
-                if (not xml in text):
+                if (xml not in text):
                     text = text.replace(
                         '</VisibleVars>',
                         xml+'\n</VisibleVars>')
@@ -199,27 +199,29 @@ class Mod:
 
     def uninstallMenus(self):
         if (data.config.gameversion == "ng" and self.menus):
-            with open(data.config.menu + "/dx11filelist.txt", 'r', encoding=detectEncoding(data.config.menu + "/dx11filelist.txt")) as userfile:
-                text = userfile.read()
-            for menu in iter(self.menus):
-                menu_line = menu + ";"
-                if(menu_line in text):
-                    text = text.replace('\n'+menu_line, '')
-            with open(data.config.menu + "/dx11filelist.txt", 'w', encoding="utf-16") as userfile:
-                text = text.replace('\n\n', '\n');
-                text = userfile.write(text)
-            with open(data.config.menu + "/dx12filelist.txt", 'r', encoding=detectEncoding(data.config.menu + "/dx12filelist.txt")) as userfile:
-                text = userfile.read()
-            for menu in iter(self.menus):
-                menu_line = menu + ";"
-                if(menu_line in text):
-                    text = text.replace('\n'+menu_line, '')
-            with open(data.config.menu + "/dx12filelist.txt", 'w', encoding="utf-16") as userfile:
-                text = text.replace('\n\n', '\n');
-                text = userfile.write(text)
+            if path.exists(data.config.menu + "/dx11filelist.txt"):
+                with open(data.config.menu + "/dx11filelist.txt", 'r', encoding=detectEncoding(data.config.menu + "/dx11filelist.txt")) as userfile:
+                    text = userfile.read()
+                for menu in iter(self.menus):
+                    menu_line = menu + ";"
+                    if (menu_line in text):
+                        text = text.replace('\n'+menu_line, '')
+                with open(data.config.menu + "/dx11filelist.txt", 'w', encoding="utf-16") as userfile:
+                    text = text.replace('\n\n', '\n')
+                    text = userfile.write(text)
+            if path.exists(data.config.menu + "/dx12filelist.txt"):
+                with open(data.config.menu + "/dx12filelist.txt", 'r', encoding=detectEncoding(data.config.menu + "/dx12filelist.txt")) as userfile:
+                    text = userfile.read()
+                for menu in iter(self.menus):
+                    menu_line = menu + ";"
+                    if (menu_line in text):
+                        text = text.replace('\n'+menu_line, '')
+                with open(data.config.menu + "/dx12filelist.txt", 'w', encoding="utf-16") as userfile:
+                    text = text.replace('\n\n', '\n')
+                    text = userfile.write(text)
 
     def uninstallXmlKeys(self):
-        if (self.xmlkeys):
+        if (self.xmlkeys) and path.exists(data.config.menu + "/input.xml"):
             text = ''
             with open(data.config.menu + "/input.xml", 'r', encoding=detectEncoding(data.config.menu + "/input.xml")) as userfile:
                 text = userfile.read()
@@ -228,7 +230,7 @@ class Mod:
                     text = text.replace(xml+"\n", '')
             with open(data.config.menu + "/input.xml", 'w', encoding="utf-16") as userfile:
                 text = userfile.write(text)
-        if (self.hidden):
+        if (self.hidden) and path.exists(data.config.menu + "/hidden.xml"):
             text = ''
             with open(data.config.menu + "/hidden.xml", 'r', encoding=detectEncoding(data.config.menu + "/hidden.xml")) as userfile:
                 text = userfile.read()
@@ -318,10 +320,11 @@ class Mod:
             added = self.installUserSettingsToFile("user.settings")
 
             if data.config.gameversion == "ng":
-                dx12AdditionCount = self.installUserSettingsToFile("dx12user.settings")
+                dx12AdditionCount = self.installUserSettingsToFile(
+                    "dx12user.settings")
                 if added != dx12AdditionCount:
                     raise Exception(self.name + ' failed to install same number of user settings to dx11 and dx12 user.settings files dx11 count: '
-                        + added + 'dx12 count: ' + dx12AdditionCount)
+                                    + added + 'dx12 count: ' + dx12AdditionCount)
         return added
 
     def installUserSettingsToFile(self, fileName) -> int:
@@ -329,7 +332,8 @@ class Mod:
         absFilePath = data.config.settings + '/' + fileName
         config = ConfigParser(strict=False)
         config.optionxform = str
-        config.read(absFilePath, encoding=detectEncoding(absFilePath))
+        if path.exists(absFilePath):
+            config.read(absFilePath, encoding=detectEncoding(absFilePath))
         for setting in iter(self.usersettings):
             if not config.has_section(setting.context):
                 config.add_section(setting.context)
@@ -348,6 +352,8 @@ class Mod:
 
     def uninstallUserSettingsFromFile(self, fileName):
         absFilePath = data.config.settings + '/' + fileName
+        if not path.exists(absFilePath):
+            return
         config = ConfigParser(strict=False)
         config.optionxform = str
         config.read(absFilePath, encoding=detectEncoding(absFilePath))

@@ -50,10 +50,13 @@ class Installer:
             mod.date = strftime("%Y-%m-%d %H:%M:%S", gmtime())
             mod.name = modname
 
-            if not path.isdir(data.config.mods):
-                mkdir(data.config.mods)
-            if not path.isdir(data.config.dlc):
-                mkdir(data.config.dlc)
+            if not data.config.mods:
+                raise Exception(
+                    translate("MainWindow", "Mods folder does not exist and could not be created."))
+            if not data.config.dlc:
+                raise Exception(
+                    translate("MainWindow", "DLC folder does not exist and could not be created."))
+
             installed_mods = listdir(data.config.mods)
             installed_dlcs = listdir(data.config.dlc)
 
@@ -219,18 +222,24 @@ class Installer:
 
     def removeModData(self, mod):
         '''Removes mod data'''
+        if not data.config.mods or not path.exists(data.config.mods):
+            return
         for file in mod.files:
             if path.exists(data.config.mods + "/" + file):
                 removeDirectory(data.config.mods + "/" + file)
 
     def removeModDlcs(self, mod):
         '''Removes dlc data'''
+        if not data.config.dlc or not path.exists(data.config.dlc):
+            return
         for dlc in mod.dlcs:
             if path.exists(data.config.dlc + "/" + dlc):
                 removeDirectory(data.config.dlc + "/" + dlc)
 
     def removeModMenus(self, mod):
         '''Removes menu data'''
+        if not data.config.menu or not path.exists(data.config.menu):
+            return
         for menu in mod.menus:
             if path.exists(data.config.menu + "/" + menu):
                 if menu in ("audio.xml", "display.xml", "dx11filelist.txt", "dx12filelist.txt", "gameplay.xml", "gamma.xml", "graphics.xml", "graphicsdx11.xml", "hidden.xml", "hud.xml", "input.xml", "localization.xml", "postprocess.xml", "rendering.xml"):
