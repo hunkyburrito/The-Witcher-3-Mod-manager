@@ -1,19 +1,20 @@
 '''Core functionality'''
 # pylint: disable=invalid-name,superfluous-parens,bare-except,broad-except,wildcard-import,unused-wildcard-import,missing-docstring
 
-from os import path, listdir, remove, mkdir
-from time import gmtime, strftime
-from shutil import copyfile
 from dataclasses import dataclass
-from typing import Callable, Any
+from os import listdir, mkdir, path, remove
+from shutil import copyfile
+from time import gmtime, strftime
+from typing import Any, Callable
 
 from PySide2.QtWidgets import QMessageBox
-from src.globals import data
-from src.util.util import *
+
 from src.core.fetcher import *
 from src.core.model import Model
-from src.gui.alerts import MessageAlertModFromGamePath, MessageOverwrite
+from src.globals import data
 from src.globals.constants import translate
+from src.gui.alerts import MessageAlertModFromGamePath, MessageOverwrite
+from src.util.util import *
 
 
 @dataclass
@@ -26,16 +27,17 @@ class Installer:
     progress: Callable[[float], Any] = lambda _: None
     output: Callable[[str], Any] = lambda _: None
 
-    def installMod(self, modPath: str) -> Tuple[bool, int]:
+    def installMod(self, modPath: str) -> Tuple[bool, int, int]:
         '''Installs mod from given path. If given mod is an archive first extracts it'''
 
         realModPath = os.path.realpath(modPath)
         realGamePath = os.path.realpath(data.config.game)
         if realModPath and realGamePath and realModPath.startswith(realGamePath):
             MessageAlertModFromGamePath(realModPath, realGamePath)
-            return False, 0
+            return False, 0, 0
 
         installCount = 0
+        incompleteCount = 0
         modname = path.split(modPath)[1]
         self.output(translate("MainWindow", "Installing") +
                     " " + Mod.formatName(modname))
@@ -107,14 +109,43 @@ class Installer:
             if (not mod.files and not mod.dlcs):
                 raise Exception('No data found in ' + "'"+mod.name+"'")
 
-            mod.installMenus()
-            mod.installXmlKeys()
-            mod.installInputKeys()
-            mod.installUserSettings()
+            incomplete = False
+            try:
+                mod.installMenus()
+            except Exception as err:
+                incomplete = True
+                self.output(formatUserError(err))
+                self.output(translate("MainWindow", "Note: Additions to ") +
+                            translate("MainWindow", "menu xml files") + translate("MainWindow", " could not be automatically installed."))
+            try:
+                mod.installXmlKeys()
+            except Exception as err:
+                incomplete = True
+                self.output(formatUserError(err))
+                self.output(translate("MainWindow", "Note: Additions to ") +
+                            "input.xml" + translate("MainWindow", " could not be automatically installed."))
+            try:
+                mod.installInputKeys()
+            except Exception as err:
+                incomplete = True
+                self.output(formatUserError(err))
+                self.output(translate("MainWindow", "Note: Additions to ") +
+                            "input.settings" + translate("MainWindow", " could not be automatically installed."))
+            try:
+                mod.installUserSettings()
+            except Exception as err:
+                incomplete = True
+                self.output(formatUserError(err))
+                self.output(translate("MainWindow", "Note: Additions to ") +
+                            "user.settings" + translate("MainWindow", " could not be automatically installed."))
             mod.checkPriority()
 
+            if incomplete:
+                incompleteCount += 1
+
             if mod.readmes:
-                self.output(translate("MainWindow", "Detected one or more README files."))
+                self.output(
+                    translate("MainWindow", "Detected one or more README files."))
                 self.output(
                     translate("MainWindow", "  Some manual configuration may be required, please read the readme to make sure."))
 
@@ -146,7 +177,7 @@ class Installer:
         finally:
             if path.exists(data.config.extracted):
                 removeDirectory(data.config.extracted)
-        return result, installCount
+        return result, installCount, incompleteCount
 
     def uninstallMod(self, mod: Mod) -> bool:
         '''Uninstalls given mod'''

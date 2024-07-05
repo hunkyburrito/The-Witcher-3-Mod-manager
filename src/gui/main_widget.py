@@ -1,25 +1,49 @@
 '''Main Widget'''
 # pylint: disable=invalid-name,superfluous-parens,wildcard-import,bare-except,broad-except,wildcard-import,unused-wildcard-import,missing-docstring,too-many-lines
 
-from sys import platform
 from os import path
+from sys import platform
 
-from PySide2.QtCore import QFileInfo, QMetaObject, QRect, QSize, QThread, Qt, Signal
+from PySide2.QtCore import QFileInfo, QMetaObject, QRect, QSize, Qt, QThread, Signal
 from PySide2.QtGui import QCursor, QResizeEvent
-from PySide2.QtWidgets import QAbstractItemView, QAction, QActionGroup, QFileIconProvider, QHBoxLayout, QHeaderView, QInputDialog, QLineEdit, QMenu, QMenuBar, QMessageBox, QProgressBar, QPushButton, QSizePolicy, QSplitter, QTextEdit, QToolBar, QTreeWidget, QVBoxLayout, QWidget
-
-from watchdog.observers import Observer
+from PySide2.QtWidgets import (
+    QAbstractItemView,
+    QAction,
+    QActionGroup,
+    QFileIconProvider,
+    QHBoxLayout,
+    QHeaderView,
+    QInputDialog,
+    QLineEdit,
+    QMenu,
+    QMenuBar,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QSizePolicy,
+    QSplitter,
+    QTextEdit,
+    QToolBar,
+    QTreeWidget,
+    QVBoxLayout,
+    QWidget,
+)
 from watchdog.events import PatternMatchingEventHandler
+from watchdog.observers import Observer
 
-from src.globals.constants import *
-from src.globals import data
-from src.util.util import *
-from src.util.syntax import *
-from src.core.model import Model
 from src.core.installer import Installer
-from src.gui.tree_widget import CustomTreeWidgetItem
+from src.core.model import Model
+from src.globals import data
+from src.globals.constants import *
+from src.gui.alerts import (
+    MessageAlertIncompleteInstallation,
+    MessageAlertScript,
+    MessageUnsupportedOSAction,
+)
 from src.gui.details_dialog import DetailsDialog
-from src.gui.alerts import MessageAlertScript, MessageUnsupportedOSAction
+from src.gui.tree_widget import CustomTreeWidgetItem
+from src.util.syntax import *
+from src.util.util import *
 
 
 class ModsSettingsWatcher(QThread):
@@ -328,7 +352,8 @@ class CustomMainWidget(QWidget):
         self.textEdit.setCursor(QCursor(Qt.ArrowCursor))
 
         self.pushButton_4.setText(translate("MainWindow", "Run Script Merger"))
-        self.pushButton_5.setText(translate("MainWindow", "Run the Game") + " (" + data.config.graphicsapi + ")")
+        self.pushButton_5.setText(
+            translate("MainWindow", "Run the Game") + " (" + data.config.graphicsapi + ")")
 
         self.menuFile.setTitle(translate("MainWindow", "Mods"))
         self.menuEdit.setTitle(translate("MainWindow", "Edit"))
@@ -809,7 +834,7 @@ class CustomMainWidget(QWidget):
         button = QMessageBox.question(
             self,
             translate("MainWindow", "Change language"),
-            translate("MainWindow", "You need to restart the program to apply the changes.")+"\n"+
+            translate("MainWindow", "You need to restart the program to apply the changes.")+"\n" +
             translate("MainWindow", "Do you want to restart it now?"),
             QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
         if (button == QMessageBox.Yes):
@@ -903,6 +928,7 @@ class CustomMainWidget(QWidget):
         try:
             successCount = 0
             errorCount = 0
+            incompleteCount = 0
             if file:
                 progress = 0
                 progressMax = len(file)
@@ -914,16 +940,20 @@ class CustomMainWidget(QWidget):
                     # pylint: disable=cell-var-from-loop
                     installer.progress = lambda p: \
                         self.setProgress(progressStart + progressCur * p)
-                    result, count = installer.installMod(mod)
+                    result, count, incomplete = installer.installMod(mod)
                     if result:
                         successCount += count
                     else:
                         errorCount += 1
+                    if incomplete:
+                        incompleteCount += 1
                     progress += 1
                     self.setProgress(100 * progress / progressMax)
                 lastpath, _ = path.split(file[0])
                 data.config.lastpath = lastpath
                 self.refreshList()
+                if incompleteCount:
+                    MessageAlertIncompleteInstallation()
                 if successCount:
                     self.alertRunScriptMerger()
                 self.setProgress(0)
@@ -934,18 +964,20 @@ class CustomMainWidget(QWidget):
             self.output(formatUserError(err))
             errorCount += 1
         self.output(
-            '> '+
-            translate("MainWindow", "Installed")+
-            f' {successCount} '+
-            translate("MainWindow", "mods or dlcs")+
-            f' ({errorCount} '+
-            translate("MainWindow", "errors")+')')
+            '> ' +
+            translate("MainWindow", "Installed") +
+            f' {successCount} ' +
+            translate("MainWindow", "mods or dlcs") +
+            f' ({errorCount} ' +
+            translate("MainWindow", "errors")+')' +
+            (f' ({incompleteCount} ' + translate("MainWindow", "incomplete") + ')' if incompleteCount else ''))
 
     def uninstallMods(self):
         '''Uninstalls selected mods'''
         try:
             selected = self.getSelectedMods()
             if selected:
+                errors = 0
                 clicked = QMessageBox.question(
                     self, translate("MainWindow", "Confirm"),
                     translate("MainWindow",
@@ -958,12 +990,19 @@ class CustomMainWidget(QWidget):
                     progressMax = len(selected)
                     installer = Installer(self.model, output=self.output)
                     for modname in selected:
-                        installer.uninstallMod(self.model.get(modname))
+                        success = installer.uninstallMod(
+                            self.model.get(modname))
+                        if not success:
+                            errors += 1
                         progress += 1
                         self.setProgress(100 * progress / progressMax)
                     self.refreshList()
                     self.setProgress(0)
-                    self.alertRunScriptMerger()
+                    if errors:
+                        self.output(
+                            translate("MainWindow", "Failed to uninstall ") + str(errors) + " " + translate("MainWindow", "mods"))
+                    else:
+                        self.alertRunScriptMerger()
         except Exception as err:
             self.setProgress(0)
             self.output(formatUserError(err))
@@ -1103,7 +1142,8 @@ class CustomMainWidget(QWidget):
             self.refreshLoadOrder()
             self.model.write()
         except Exception as err:
-            self.output(translate("MainWindow", "Couldn't refresh list: ") + f"{formatUserError(err)}")
+            self.output(
+                translate("MainWindow", "Couldn't refresh list: ") + f"{formatUserError(err)}")
             return err
         return None
 
@@ -1220,7 +1260,7 @@ class CustomMainWidget(QWidget):
         item.setTextAlignment(9, Qt.AlignCenter)
         item.setTextAlignment(10, Qt.AlignRight)
         item.setTextAlignment(11, Qt.AlignCenter)
-        if (not '~' in name):
+        if ('~' not in name):
             if (on):
                 item.setCheckState(0, Qt.Checked)
             else:

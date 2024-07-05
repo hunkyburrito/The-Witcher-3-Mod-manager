@@ -53,6 +53,24 @@ def MessageAlertScript():
         QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
 
 
+def MessageAlertIncompleteInstallation():
+    '''Shows dialog to let user know that the installation is incomplete'''
+    return QMessageBox.information(
+        None,
+        translate("MainWindow", "Incomplete Installation"),
+        translate(
+            "MainWindow",
+            "The installation of a mod is incomplete.") + "\n\n" +
+        translate(
+            "MainWindow",
+            "Some files might have to be installed manually.") + "\n" +
+        translate(
+            "MainWindow",
+            "Please check the output log for more information.") + "\n",
+        QMessageBox.Ok
+    )
+
+
 def MessageAlertOtherInstance():
     '''Shows alert that another insntance is already open'''
     return QMessageBox.question(
