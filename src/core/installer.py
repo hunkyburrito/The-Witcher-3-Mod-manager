@@ -201,24 +201,49 @@ class Installer:
             self.output(formatUserError(err))
             return False
 
-    def reinstallMod(self, mod: Mod) -> bool:
+    def reinstallMod(self, mod: Mod) -> Tuple[bool, bool]:
         try:
             self.output(
                 translate("MainWindow", "Reinstalling") + " " + mod.name)
             if not mod.enabled:
                 mod.enable()
+            incomplete = False
             mod.uninstallUserSettings()
-            mod.installUserSettings()
+            try:
+                mod.installUserSettings()
+            except Exception as err:
+                incomplete = True
+                self.output(formatUserError(err))
+                self.output(translate("MainWindow", "Note: Additions to ") +
+                            "user.settings" + translate("MainWindow", " could not be automatically installed."))
             mod.uninstallXmlKeys()
-            mod.installXmlKeys()
+            try:
+                mod.installXmlKeys()
+            except Exception as err:
+                incomplete = True
+                self.output(formatUserError(err))
+                self.output(translate("MainWindow", "Note: Additions to ") +
+                            "input.xml" + translate("MainWindow", " could not be automatically installed."))
             mod.uninstallMenus()
-            mod.installMenus()
-            mod.installInputKeys()
+            try:
+                mod.installMenus()
+            except Exception as err:
+                incomplete = True
+                self.output(formatUserError(err))
+                self.output(translate("MainWindow", "Note: Additions to ") +
+                            translate("MainWindow", "menu xml files") + translate("MainWindow", " could not be automatically installed."))
+            try:
+                mod.installInputKeys()
+            except Exception as err:
+                incomplete = True
+                self.output(formatUserError(err))
+                self.output(translate("MainWindow", "Note: Additions to ") +
+                            "input.settings" + translate("MainWindow", " could not be automatically installed."))
             # TODO: re-fetch and copy xml files
-            return True
+            return (True, incomplete)
         except Exception as err:
             self.output(formatUserError(err))
-            return False
+            return (False, False)
 
     def removeModData(self, mod):
         '''Removes mod data'''

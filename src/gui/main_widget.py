@@ -1012,6 +1012,8 @@ class CustomMainWidget(QWidget):
         try:
             selected = self.getSelectedMods()
             if selected:
+                errors = 0
+                incompleteCount = 0
                 clicked = QMessageBox.question(
                     self, translate("MainWindow", "Confirm"),
                     translate("MainWindow",
@@ -1025,11 +1027,22 @@ class CustomMainWidget(QWidget):
                     self.setProgress(20)
                     installer = Installer(self.model, output=self.output)
                     for modname in selected:
-                        installer.reinstallMod(self.model.get(modname))
+                        error, incomplete = installer.reinstallMod(
+                            self.model.get(modname))
+                        if error:
+                            errors += 1
+                        if incomplete:
+                            incompleteCount += 1
                     self.setProgress(100)
                     self.refreshList()
                     self.setProgress(0)
-                    self.alertRunScriptMerger()
+                    if incompleteCount:
+                        MessageAlertIncompleteInstallation()
+                    if errors:
+                        self.output(
+                            translate("MainWindow", "Failed to reinstall ") + str(errors) + " " + translate("MainWindow", "mods"))
+                    if errors < len(selected):
+                        self.alertRunScriptMerger()
         except Exception as err:
             self.setProgress(0)
             self.output(formatUserError(err))
