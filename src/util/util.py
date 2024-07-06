@@ -272,10 +272,14 @@ def detectEncoding(path: str) -> str:
     if os.path.exists(path):
         with open(path, 'rb') as file:
             text = file.read()
-            detected = charset_normalizer.detect(text)
+            detected = charset_normalizer.detect(
+                text, should_rename_legacy=True)
             print("detected", path, "as", detected)
-            if float(detected["confidence"]) > 0.5:
-                return str(detected["encoding"])
+            if detected and "encoding" in detected:
+                if detected["encoding"] == "ascii":
+                    return "utf-8"
+                if float(detected["confidence"]) > 0.5:
+                    return str(detected["encoding"])
             return "utf-8"
     else:
         return "utf-8"
