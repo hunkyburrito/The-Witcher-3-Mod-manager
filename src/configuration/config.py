@@ -141,6 +141,8 @@ class Configuration:
                     print(
                         f"writing config.ini to {self.__configPath + '/config.ini'}")
                     self.config.write(file, space_around_delimiters)
+                    file.flush()
+                    os.fsync(file.fileno())
             finally:
                 self.__writing_config = False
             self.configLastWritten = deepcopy(self.config)
@@ -160,6 +162,8 @@ class Configuration:
                     print(
                         f"writing mods.settings to {self.__userSettingsPath + '/mods.settings'}")
                     priority.write(file, space_around_delimiters)
+                    file.flush()
+                    os.fsync(file.fileno())
             finally:
                 self.__writing_priority = False
             self.priorityLastWritten = deepcopy(self.priority)

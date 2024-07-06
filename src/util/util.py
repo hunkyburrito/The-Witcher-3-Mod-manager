@@ -304,6 +304,8 @@ def fixUserSettingsDuplicateBrackets():
                 config.remove_section(section)
         with open(data.config.settings+"/user.settings", 'w', encoding="utf-8") as userfile:
             config.write(userfile, space_around_delimiters=False)
+            userfile.flush()
+            os.fsync(userfile.fileno())
     except:
         print("fixing duplicate brackets failed")
 

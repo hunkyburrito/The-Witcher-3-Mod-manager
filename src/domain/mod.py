@@ -163,6 +163,8 @@ class Mod:
             with open(data.config.menu + "/dx11filelist.txt", 'w', encoding="utf-16") as userfile:
                 text = text.replace('\n\n', '\n')
                 text = userfile.write(text)
+                userfile.flush()
+                os.fsync(userfile.fileno())
             with open(data.config.menu + "/dx12filelist.txt", 'r', encoding=detectEncoding(data.config.menu + "/dx12filelist.txt")) as userfile:
                 text = userfile.read()
             for menu in iter(self.menus):
@@ -172,6 +174,8 @@ class Mod:
             with open(data.config.menu + "/dx12filelist.txt", 'w', encoding="utf-16") as userfile:
                 text = text.replace('\n\n', '\n')
                 text = userfile.write(text)
+                userfile.flush()
+                os.fsync(userfile.fileno())
 
     def installXmlKeys(self):
         if (self.xmlkeys):
@@ -185,6 +189,8 @@ class Mod:
                         xml+'\n<!-- [BASE_CharacterMovement] -->')
             with open(data.config.menu + "/input.xml", 'w', encoding="utf-16") as userfile:
                 text = userfile.write(text)
+                userfile.flush()
+                os.fsync(userfile.fileno())
         if (self.hidden):
             text = ''
             with open(data.config.menu + "/hidden.xml", 'r', encoding=detectEncoding(data.config.menu + "/hidden.xml")) as userfile:
@@ -196,6 +202,8 @@ class Mod:
                         xml+'\n</VisibleVars>')
             with open(data.config.menu + "/hidden.xml", 'w', encoding="utf-16") as userfile:
                 text = userfile.write(text)
+                userfile.flush()
+                os.fsync(userfile.fileno())
 
     def uninstallMenus(self):
         if (data.config.gameversion == "ng" and self.menus):
@@ -209,6 +217,8 @@ class Mod:
                 with open(data.config.menu + "/dx11filelist.txt", 'w', encoding="utf-16") as userfile:
                     text = text.replace('\n\n', '\n')
                     text = userfile.write(text)
+                    userfile.flush()
+                    os.fsync(userfile.fileno())
             if path.exists(data.config.menu + "/dx12filelist.txt"):
                 with open(data.config.menu + "/dx12filelist.txt", 'r', encoding=detectEncoding(data.config.menu + "/dx12filelist.txt")) as userfile:
                     text = userfile.read()
@@ -219,6 +229,8 @@ class Mod:
                 with open(data.config.menu + "/dx12filelist.txt", 'w', encoding="utf-16") as userfile:
                     text = text.replace('\n\n', '\n')
                     text = userfile.write(text)
+                    userfile.flush()
+                    os.fsync(userfile.fileno())
 
     def uninstallXmlKeys(self):
         if (self.xmlkeys) and path.exists(data.config.menu + "/input.xml"):
@@ -230,6 +242,8 @@ class Mod:
                     text = text.replace(xml+"\n", '')
             with open(data.config.menu + "/input.xml", 'w', encoding="utf-16") as userfile:
                 text = userfile.write(text)
+                userfile.flush()
+                os.fsync(userfile.fileno())
         if (self.hidden) and path.exists(data.config.menu + "/hidden.xml"):
             text = ''
             with open(data.config.menu + "/hidden.xml", 'r', encoding=detectEncoding(data.config.menu + "/hidden.xml")) as userfile:
@@ -239,6 +253,8 @@ class Mod:
                     text = text.replace(xml+"\n", '')
             with open(data.config.menu + "/hidden.xml", 'w', encoding="utf-16") as userfile:
                 text = userfile.write(text)
+                userfile.flush()
+                os.fsync(userfile.fileno())
 
     def installInputKeys(self) -> Tuple[int, int]:
         from src.core.fetcher import fetchInputSettings
@@ -308,6 +324,8 @@ class Mod:
             text += repr(key) + "\n"
         with open(filename, 'w', encoding="utf-8") as userfile:
             userfile.write(text)
+            userfile.flush()
+            os.fsync(userfile.fileno())
 
         return added, skipped
 
@@ -338,6 +356,8 @@ class Mod:
             added += 1
         with open(absFilePath, 'w', encoding="utf-8") as userfile:
             config.write(userfile, space_around_delimiters=False)
+            userfile.flush()
+            os.fsync(userfile.fileno())
         return added
 
     def uninstallUserSettings(self):
@@ -359,6 +379,8 @@ class Mod:
                 config.remove_option(setting.context, setting.option)
         with open(absFilePath, 'w', encoding="utf-8") as userfile:
             config.write(userfile, space_around_delimiters=False)
+            userfile.flush()
+            os.fsync(userfile.fileno())
 
     def __repr__(self):
         string = translate("MOD", "NAME: ") + str(self.name) + "\n" + translate("MOD", "ENABLED: ") + str(self.enabled) + \

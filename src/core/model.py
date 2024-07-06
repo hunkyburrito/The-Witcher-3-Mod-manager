@@ -54,6 +54,8 @@ class Model:
             encoding = detectEncoding(self.xmlfile)
             with open(self.xmlfile + ".new", 'wb') as file:
                 root.write(file, encoding=encoding)
+                file.flush()
+                os.fsync(file.fileno())
             if os.path.isfile(self.xmlfile + ".old"):
                 os.remove(self.xmlfile + ".old")
             if os.path.isfile(self.xmlfile):
