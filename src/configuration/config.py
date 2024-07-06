@@ -10,6 +10,7 @@ from copy import deepcopy
 from typing import Union
 
 from PySide2.QtWidgets import QMainWindow, QMessageBox, QWidget
+from fasteners import ReaderWriterLock
 
 from src.globals.constants import translate
 from src.gui.alerts import MessageAlertReadingConfigINI
@@ -22,8 +23,8 @@ class Configuration:
     __configPath: str = ''
     __userSettingsPath: str = ''
 
-    __writing_config: bool = False
-    __writing_priority: bool = False
+    __writing_config: ReaderWriterLock
+    __writing_priority: ReaderWriterLock
 
     config: configparser.ConfigParser = None  # type: ignore
     priority: configparser.ConfigParser = None  # type: ignore
@@ -48,6 +49,9 @@ class Configuration:
 
         if not path.exists(self.__configPath):
             os.mkdir(self.__configPath)
+
+        self.__writing_config = ReaderWriterLock()
+        self.__writing_priority = ReaderWriterLock()
 
         self.readConfig()
 
@@ -101,51 +105,45 @@ class Configuration:
     def readPriority(self):
         print(
             f"reading mods.settings from {self.__userSettingsPath + '/mods.settings'}")
-        self.priority.clear()
         file = self.__userSettingsPath + '/mods.settings'
-        if self.__writing_priority:
-            return
-        if os.path.isfile(file):
-            try:
-                self.priority.clear()
-                self.priority.read(file, encoding=util.detectEncoding(file))
-            except Exception as e:
-                MessageAlertReadingConfigINI(file, e)
-        else:
-            print("mods.settings not found, creating new file")
+        with self.__writing_priority.read_lock():
+            self.priority.clear()
+            if os.path.isfile(file):
+                try:
+                    self.priority.read(
+                        file, encoding=util.detectEncoding(file))
+                except Exception as e:
+                    MessageAlertReadingConfigINI(file, e)
+            else:
+                print("mods.settings not found, creating new file")
 
     def readConfig(self):
         print(f"reading config.ini from {self.__configPath + '/config.ini'}")
         file = self.__configPath + '/config.ini'
-        if self.__writing_config:
-            return
-        if os.path.isfile(file):
-            try:
-                self.config.clear()
-                self.config.read(file, encoding=util.detectEncoding(file))
-            except Exception as e:
-                MessageAlertReadingConfigINI(file, e)
-        else:
-            print("config.ini not found, creating new file")
+        with self.__writing_config.read_lock():
+            self.config.clear()
+            if os.path.isfile(file):
+                try:
+                    self.config.read(file, encoding=util.detectEncoding(file))
+                except Exception as e:
+                    MessageAlertReadingConfigINI(file, e)
+                else:
+                    print("config.ini not found, creating new file")
 
-    @util.debounce(50)
-    def write(self, space_around_delimiters: bool = False):
-        self.write_immediately(space_around_delimiters)
-
-    def write_immediately(self, space_around_delimiters: bool = False):
-        self.write().cancel()
+    @util.debounce(25)
+    def write_config(self, space_around_delimiters: bool = False):
         if self.config != self.configLastWritten:
-            try:
-                self.__writing_config = True
+            with self.__writing_config.write_lock():
                 with open(self.__configPath + '/config.ini', 'w', encoding='utf-8') as file:
                     print(
                         f"writing config.ini to {self.__configPath + '/config.ini'}")
                     self.config.write(file, space_around_delimiters)
                     file.flush()
                     os.fsync(file.fileno())
-            finally:
-                self.__writing_config = False
             self.configLastWritten = deepcopy(self.config)
+
+    @util.debounce(25)
+    def write_priority(self, space_around_delimiters: bool = False):
         if self.priority != self.priorityLastWritten:
             # proper-case all keys
             priority = deepcopy(self.priority)
@@ -156,16 +154,13 @@ class Configuration:
                     priority.remove_option(section, option)
                     priority.set(
                         section, f'{option[:1].upper()}{option[1:].lower()}', value)
-            try:
-                self.__writing_priority = True
+            with self.__writing_priority.write_lock():
                 with open(self.__userSettingsPath + '/mods.settings', 'w', encoding='utf-8') as file:
                     print(
                         f"writing mods.settings to {self.__userSettingsPath + '/mods.settings'}")
                     priority.write(file, space_around_delimiters)
                     file.flush()
                     os.fsync(file.fileno())
-            finally:
-                self.__writing_priority = False
             self.priorityLastWritten = deepcopy(self.priority)
 
     def get(self, section: str, option: str):
@@ -178,7 +173,7 @@ class Configuration:
             self.config.add_section(section)
         self.config.set(section, option, value)
         if write:
-            self.write()
+            self.write_config()
 
     def getPriority(self, section: str):
         if self.priority.has_section(section):
@@ -196,7 +191,7 @@ class Configuration:
     def removePriority(self, section: str):
         if self.priority.has_section(section):
             self.priority.remove_section(section)
-        self.write()
+        self.write_priority()
 
     def getWindowSection(self, section: str, prefix: str = ''):
         value = self.get('WINDOW', prefix+'section'+str(section))
@@ -209,14 +204,14 @@ class Configuration:
 
     def setOption(self, section: str, option: str):
         if not self.config.has_section(section):
-            self.priority.add_section(section)
+            self.config.add_section(section)
         self.config.set(section, option, "")
-        self.write()
+        self.write_config()
 
     def removeOption(self, section: str, option: str):
         if self.config.has_section(section):
             self.config.remove_option(section, option)
-        self.write()
+        self.write_config()
 
     @property
     def scriptmerger(self):

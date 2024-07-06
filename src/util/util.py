@@ -206,7 +206,8 @@ def removeDirectory(directory: str) -> None:
 def restartProgram():
     '''Restarts the program'''
     from src.globals import data
-    data.config.write_immediately()
+    data.config.write_priority().join()
+    data.config.write_config().join()
     python = sys.executable
     os.execl(python, python, *sys.argv)
 

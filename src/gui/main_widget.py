@@ -783,7 +783,7 @@ class CustomMainWidget(QWidget):
                 translate("MainWindow", "Enter new priority") + ": ", value)
             if (ok):
                 data.config.setPriority(str(selected), str(priority))
-                data.config.write()
+                data.config.write_priority()
                 self.refreshList()
         except Exception as err:
             self.output(formatUserError(err))
@@ -802,7 +802,7 @@ class CustomMainWidget(QWidget):
             value = value + 1
             data.config.setPriority(str(selected), str(value))
             item.setText(1, str(value))
-            data.config.write()
+            data.config.write_priority()
 
     def decreaseLoadOrderPriority(self):
         '''Decreases the priority of the selected mods in the load order list'''
@@ -819,7 +819,7 @@ class CustomMainWidget(QWidget):
                 else:
                     data.config.setPriority(str(selected), str(value))
                     item.setText(0, str(value))
-                data.config.write()
+                data.config.write_priority()
 
     def alertPopupChanged(self):
         '''Triggered when option to alert popup is changed. Saves the change'''
@@ -874,7 +874,7 @@ class CustomMainWidget(QWidget):
                             "MainWindow",
                             "You cannot set priority to disabled mod") +
                             " '" + modname + "'")
-                data.config.write()
+                data.config.write_priority()
                 self.refreshList()
         except Exception as err:
             self.output(formatUserError(err))
@@ -885,7 +885,7 @@ class CustomMainWidget(QWidget):
         if selected:
             for modname in selected:
                 self.model.get(modname).priority = None
-            data.config.write()
+            data.config.write_priority()
             self.refreshList()
 
     def increasePriority(self):
@@ -894,7 +894,7 @@ class CustomMainWidget(QWidget):
         if selected:
             for modname in selected:
                 self.model.get(modname).increasePriority()
-            data.config.write()
+            data.config.write_priority()
             self.refreshList()
 
     def decreasePriority(self):
@@ -903,7 +903,7 @@ class CustomMainWidget(QWidget):
         if selected:
             for modname in selected:
                 self.model.get(modname).decreasePriority()
-            data.config.write()
+            data.config.write_priority()
             self.refreshList()
 
     def changeGamePath(self):

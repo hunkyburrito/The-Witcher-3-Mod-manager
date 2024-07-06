@@ -87,7 +87,8 @@ if __name__ == "__main__":
 
         ret = data.app.exec_()
         data.config.saveWindowSettings(mainWidget, mainWindow)
-        data.config.write_immediately()
+        data.config.write_priority().join()
+        data.config.write_config().join()
         modModel.write()
 
         sys.exit(ret)
