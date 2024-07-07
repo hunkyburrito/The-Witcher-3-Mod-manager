@@ -37,17 +37,29 @@ def getDocumentsFolder() -> str:
         windll.shell32.SHGetFolderPathW(None, 5, None, 0, buf)
         path = normalizePath(buf.value)
     elif platform == "linux" or platform == "darwin":
-        # try steam proton documents location path
+        # try steam proton documents path default (1)
         path = normalizePath(os.path.expanduser(
             "~/.local/share/Steam/steamapps/compatdata/292030/pfx/drive_c/users/steamuser/My Documents"))
+        if not path or not os.path.exists(path):
+            # try steam proton documents path default (2)
+            path = normalizePath(os.path.expanduser(
+                "~/.steam/steam/steamapps/compatdata/292030/pfx/drive_c/users/steamuser/My Documents"))
+        if not path or not os.path.exists(path):
+            # try steam proton documents path on steam deck internal storage
+            path = normalizePath(
+                "/home/deck/.local/share/Steam/steamapps/compatdata/292030/pfx/drive_c/users/steamuser/My Documents")
+        if not path or not os.path.exists(path):
+            # try steam proton documents path on steam deck sd card
+            path = normalizePath(
+                "/run/media/mmcblk0p1/steamapps/compatdata/292030/pfx/drive_c/users/steamuser/My Documents")
     else:
         MessageUnsupportedOS(platform)
         sys.exit(1)
     if not path or not os.path.exists(path):
         path = normalizePath(str(QFileDialog.getExistingDirectory(
             None,
-            translate(
-                "MainWindow", "Select \"My Documents\" directory containing the Witcher 3 config directory"),
+            translate("MainWindow",
+                      "Select \"My Documents\" directory containing the Witcher 3 config directory"),
             "My Documents")))
     return path
 
