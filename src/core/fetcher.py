@@ -200,9 +200,10 @@ def fetchInputSettings(filetext: str) -> List[Key]:
         arr = filter(lambda s: s != '', str(res).split('\n'))
         context = ''
         for line in arr:
-            if line[0] == "[":
+            line = line.strip()
+            if line[0] == "[" and line[-1] == "]":
                 context = line
-            else:
+            elif context != '':
                 found.append(Key(context, line))
     return found
 
@@ -218,9 +219,9 @@ def fetchUserSettings(filetext: str) -> List[Usersetting]:
             line = line.strip()
             if not line:
                 continue
-            if line[0] == "[":
+            if line[0] == "[" and line[-1] == "]":
                 context = line
-            else:
+            elif context != '':
                 found.append(Usersetting(context, line))
     return found
 
