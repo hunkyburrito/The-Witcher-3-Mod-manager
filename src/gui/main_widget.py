@@ -655,7 +655,7 @@ class CustomMainWidget(QWidget):
         '''Adds custom action to the toolbar selected by user'''
         try:
             if (not selected):
-                temp = getFile()
+                temp = getFile(self)
                 if (temp):
                     selected = temp[0]
             if (selected):
@@ -920,7 +920,7 @@ class CustomMainWidget(QWidget):
     def installMods(self):
         '''Installs selected mods'''
         self.clear()
-        file = getFile(data.config.lastpath, "*.zip *.rar *.7z")
+        file = getFile(self, data.config.lastpath, "*.zip *.rar *.7z")
         self.installModFiles(file)
 
     def installModFiles(self, file):

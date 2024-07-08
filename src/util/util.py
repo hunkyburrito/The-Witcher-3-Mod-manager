@@ -224,13 +224,20 @@ def restartProgram():
     os.execl(python, python, *sys.argv)
 
 
-def getFile(directory="", extensions="", title=None):
+def getFile(parent=None, directory="", extensions="", title=None) -> list[str]:
+    '''Opens custom dialog for selecting multiple folders or files'''
     from src.globals.constants import translate
-    from src.gui.file_dialog import FileDialog
     if title is None:
         title = translate("MainWindow", "Select Files or Folders")
-    '''Opens custom dialog for selecting multiple folders or files'''
-    return FileDialog(None, title, str(directory), str(extensions)).selectedFiles
+    dialog = QFileDialog(parent, title, directory, extensions)
+    dialog.setOptions(QFileDialog.Option.ReadOnly)
+    dialog.setFileMode(QFileDialog.FileMode.ExistingFiles)
+    dialog.setModal(True)
+    dialog.open()
+    result = []
+    if dialog.exec_():
+        result = dialog.selectedFiles()
+    return [normalizePath(file) for file in result if os.path.isfile(file)]
 
 
 def getSize(start_path='.'):
