@@ -97,10 +97,19 @@ class Mod:
 
         return name
 
-    def enable(self):
+    def enable(self) -> list[str]:
+        incomplete = []
         if (not self.enabled):
-            self.installXmlKeys()
-            self.installMenus()
+            try:
+                self.installXmlKeys()
+            except Exception as e:
+                incomplete.append("input.xml")
+                print("failed to install xmlkeys", e)
+            try:
+                self.installMenus()
+            except Exception as e:
+                incomplete.append(translate("MainWindow", "menu xml files"))
+                print("failed to install menus", e)
             for menu in iter(self.menus):
                 if path.exists(data.config.menu + "/" + menu + ".disabled"):
                     rename(
@@ -120,6 +129,7 @@ class Mod:
                         data.config.mods + "/~" + filedata,
                         data.config.mods + "/" + filedata)
             self.enabled = True
+        return incomplete
 
     def disable(self):
         if (self.enabled):

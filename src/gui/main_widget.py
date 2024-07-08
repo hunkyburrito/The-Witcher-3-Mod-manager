@@ -749,7 +749,11 @@ class CustomMainWidget(QWidget):
             Enables or disables the mod based on the current check state'''
         try:
             if item.checkState(column) == Qt.Checked:
-                self.model.get(item.text(1)).enable()
+                incomplete = self.model.get(item.text(1)).enable()
+                if incomplete:
+                    for i in incomplete:
+                        self.output(translate("MainWindow", "Note: Additions to ") +
+                                    i + translate("MainWindow", " could not be automatically installed."))
             elif item.checkState(column) == Qt.Unchecked:
                 self.model.get(item.text(1)).disable()
             self.model.write()

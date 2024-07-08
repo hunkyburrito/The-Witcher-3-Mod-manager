@@ -191,7 +191,11 @@ class Installer:
             self.output(
                 translate("MainWindow", "Uninstalling") + " " + mod.name)
             if not mod.enabled:
-                mod.enable()
+                incomplete = mod.enable()
+                if incomplete:
+                    for i in incomplete:
+                        self.output(translate("MainWindow", "Note: Additions to ") +
+                                    i + translate("MainWindow", " could not be automatically installed."))
             mod.uninstallMenus()
             mod.uninstallXmlKeys()
             mod.uninstallUserSettings()
@@ -209,7 +213,11 @@ class Installer:
             self.output(
                 translate("MainWindow", "Reinstalling") + " " + mod.name)
             if not mod.enabled:
-                mod.enable()
+                incomplete = mod.enable()
+                if incomplete:
+                    for i in incomplete:
+                        self.output(translate("MainWindow", "Note: Additions to ") +
+                                    i + translate("MainWindow", " could not be automatically installed."))
             incomplete = False
             mod.uninstallUserSettings()
             try:
